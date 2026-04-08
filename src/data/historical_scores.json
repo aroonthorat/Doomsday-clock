@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-04-08",
+    "global_score": -2.0659,
+    "categories": {
+      "nuclear": -1.724,
+      "climate": -0.1913,
+      "ai": -0.0189,
+      "pandemic": -0.0381,
+      "economy": -0.0936
+    }
+  }
+]
