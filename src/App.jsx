@@ -109,6 +109,21 @@ function App() {
 
   const totalImpact = categoryContributions.reduce((acc, curr) => acc + Math.abs(curr.score), 0);
 
+  // Risk Category Breakdown Data
+  const riskCategories = [
+    { label: 'Nuclear', score: 82, color: 'var(--accent-nuclear)', key: 'nuclear' },
+    { label: 'Climate', score: 91, color: 'var(--accent-climate)', key: 'climate' },
+    { label: 'AI', score: 68, color: 'var(--accent-ai)', key: 'ai' },
+    { label: 'Pandemic', score: 45, color: 'var(--accent-pandemic)', key: 'pandemic' },
+    { label: 'Economy', score: 32, color: 'var(--accent-economy)', key: 'economy' }
+  ];
+
+  const getRiskLevelClass = (score) => {
+    if (score >= 70) return 'risk-high';
+    if (score >= 40) return 'risk-med';
+    return 'risk-low';
+  };
+
   // Countdown logic
   useEffect(() => {
     const timer = setInterval(() => {
@@ -137,6 +152,12 @@ function App() {
   const filteredArticles = selectedCategory === 'All' 
     ? articles 
     : articles.filter(a => a.category === selectedCategory);
+  const divergenceFactors = [
+    { id: 1, category: 'Nuclear', impact: -12, text: 'Increased readiness in regional missile silos detected by satellite telemetry.' },
+    { id: 2, category: 'Climate', impact: 5, text: 'Global reforestation treaty signed by 140 nations showing promise for carbon capture.' },
+    { id: 3, category: 'AI', impact: -8, text: 'Deployment of offensive autonomous cyber-units by non-state actors in Europe.' },
+    { id: 4, category: 'Geo-Political', impact: -4, text: 'Diplomatic breakdown in the Arctic over resource extraction rights.' }
+  ];
 
   return (
     <div className="container">
@@ -192,6 +213,28 @@ function App() {
               <div className="ai-chip">Sources: <span>Verified</span></div>
               <div className="ai-chip">Entropy: <span>Rising</span></div>
             </div>
+
+            <div className="divergence-panel">
+              <div className="panel-header">
+                <h3>Today's Divergence Factors</h3>
+                <span className="panel-date">{new Date().toLocaleDateString()}</span>
+              </div>
+              <div className="factor-list">
+                {divergenceFactors.map(factor => (
+                  <div key={factor.id} className="factor-item">
+                    <div className="factor-meta">
+                      <span className={`factor-category ${factor.category.toLowerCase().replace(' ', '-')}`}>
+                        {factor.category}
+                      </span>
+                      <span className={`factor-impact ${factor.impact < 0 ? 'negative' : 'positive'}`}>
+                        {factor.impact > 0 ? '+' : ''}{factor.impact}s
+                      </span>
+                    </div>
+                    <p className="factor-explanation">{factor.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
@@ -230,8 +273,35 @@ function App() {
                <line x1="50" y1="50" x2="75" y2="50" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.8">
                   <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3600s" repeatCount="indefinite" />
                </line>
-               <circle cx="50" cy="50" r="2" fill="white" />
-            </svg>
+                <circle cx="50" cy="50" r="2" fill="white" />
+             </svg>
+          </div>
+        </section>
+
+        <section className="risk-breakdown">
+          <div className="section-label">Critical Domain Analysis</div>
+          <div className="risk-grid">
+            {riskCategories.map((cat) => (
+              <div key={cat.label} className={`risk-card ${getRiskLevelClass(cat.score)}`}>
+                <div className="risk-card-header">
+                  <span className="risk-label">{cat.label}</span>
+                  <span className="risk-score">{cat.score}</span>
+                </div>
+                <div className="risk-bar-bg">
+                  <div 
+                    className="risk-bar-fill" 
+                    style={{ 
+                      width: `${cat.score}%`,
+                      backgroundColor: cat.color,
+                      boxShadow: `0 0 10px ${cat.color}44`
+                    }}
+                  ></div>
+                </div>
+                <div className="risk-status">
+                  {cat.score >= 70 ? 'HIGH ALERT' : cat.score >= 40 ? 'ELEVATED' : 'STABLE'}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
