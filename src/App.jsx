@@ -11,6 +11,8 @@ function App() {
     reason: 'Authenticating with Command Center...' 
   });
   const [loading, setLoading] = useState(true);
+  const [dailyChange, setDailyChange] = useState(0);
+  const [isGlowActive, setIsGlowActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -25,6 +27,7 @@ function App() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'clock_status' }, payload => {
         setCurrentStatus(payload.new);
         setTimeLeft(payload.new.seconds_to_midnight);
+        fetchStatus(); // Re-fetch to update daily change
       })
       .subscribe();
 
@@ -58,8 +61,36 @@ function App() {
 
     if (data) {
       setCurrentStatus(data);
-      // Logic for adjusting time based on drift if needed
       setTimeLeft(data.seconds_to_midnight);
+
+      // Fetch status from 24h ago
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: pastData } = await supabase
+        .from('clock_status')
+        .select('seconds_to_midnight')
+        .lt('created_at', yesterday)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      let prevSeconds = data.seconds_to_midnight;
+      if (pastData && pastData.length > 0) {
+        prevSeconds = pastData[0].seconds_to_midnight;
+      } else {
+        // Fallback: earliest record
+        const { data: firstData } = await supabase
+          .from('clock_status')
+          .select('seconds_to_midnight')
+          .order('created_at', { ascending: true })
+          .limit(1);
+        if (firstData && firstData.length > 0) prevSeconds = firstData[0].seconds_to_midnight;
+      }
+
+      const delta = data.seconds_to_midnight - prevSeconds;
+      if (delta !== dailyChange) {
+        setDailyChange(delta);
+        setIsGlowActive(true);
+        setTimeout(() => setIsGlowActive(false), 1500);
+      }
     }
   }
 
@@ -222,6 +253,13 @@ function App() {
             <div className="clock-status-tag">Live Risk Assessment</div>
             <h1>The World is at</h1>
             <div className="clock-timer">{formatTime(timeLeft)}</div>
+            
+            <div className={`change-indicator ${isGlowActive ? 'animate-glow' : ''} ${dailyChange >= 0 ? 'change-positive' : 'change-negative'}`}>
+              <span className="change-value">
+                {dailyChange > 0 ? '+' : ''}{dailyChange.toFixed(2)}s
+              </span>
+              <span className="change-label">Today's Change</span>
+            </div>
             
             <div className="risk-level">
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-nuclear)' }}>CRITICAL</span>
