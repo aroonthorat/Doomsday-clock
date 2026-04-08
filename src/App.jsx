@@ -12,6 +12,10 @@ function App() {
   });
   const [loading, setLoading] = useState(true);
   const [dailyChange, setDailyChange] = useState(0);
+  const [isCrisisActive, setIsCrisisActive] = useState(true);
+  const [crisisReason, setCrisisReason] = useState("War escalation detected");
+
+  const [lastUpdateTime, setLastUpdateTime] = useState("Updated 2 mins ago");
   const [isGlowActive, setIsGlowActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showExplanation, setShowExplanation] = useState(false);
@@ -218,7 +222,7 @@ function App() {
   }
 
   return (
-    <div className="container">
+    <div className={`container ${isCrisisActive ? 'crisis-active' : ''}`}>
       {loading && (
         <div className="loading-overlay">
           <div className="loader"></div>
@@ -228,9 +232,19 @@ function App() {
         </div>
       )}
       <div className="bg-glow">
-        <div className="glow-orb" style={{ top: '10%', right: '10%', opacity: 0.15 }}></div>
-        <div className="glow-orb" style={{ bottom: '20%', left: '5%', background: 'radial-gradient(circle, rgba(0, 242, 255, 0.08) 0%, transparent 70%)' }}></div>
+        <div className="glow-orb" style={{ top: '10%', left: '20%' }}></div>
+        <div className="glow-orb" style={{ bottom: '10%', right: '20%', background: 'radial-gradient(circle, rgba(112, 0, 255, 0.05) 0%, transparent 70%)' }}></div>
       </div>
+
+      {isCrisisActive && (
+        <div className="crisis-banner">
+          <div className="crisis-banner-content">
+            <span className="crisis-icon">🚨</span>
+            <span className="crisis-label">Crisis Detected:</span>
+            <span className="crisis-reason">{crisisReason}</span>
+          </div>
+        </div>
+      )}
 
       <header>
         <div className="brand">DOOMSDAY<span>CLOCK</span></div>

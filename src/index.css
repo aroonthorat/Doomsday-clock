@@ -16,6 +16,7 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-blur: blur(20px);
   --shadow-neon: 0 0 30px rgba(255, 45, 85, 0.3);
+  --shadow-crisis: 0 0 50px rgba(255, 0, 0, 0.4);
 }
 
 * {
@@ -57,6 +58,48 @@ body {
   background: radial-gradient(circle, rgba(255, 62, 62, 0.05) 0%, transparent 70%);
   filter: blur(100px);
   pointer-events: none;
+}
+
+/* Crisis Banner */
+.crisis-banner {
+  background: linear-gradient(90deg, #ff2d55, #ff8c00);
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+  padding: 0.75rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(255, 45, 85, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.crisis-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: white;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.crisis-label {
+  opacity: 0.9;
+  font-size: 0.8rem;
+}
+
+.crisis-reason {
+  font-size: 1rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* Layout */
@@ -114,6 +157,22 @@ header {
   .clock-telemetry {
     align-items: center;
   }
+}
+
+.crisis-active .clock-section {
+  border: 1px solid rgba(255, 45, 85, 0.4);
+  background: radial-gradient(circle at left, rgba(255, 45, 85, 0.08) 0%, transparent 60%);
+  animation: crisis-pulse 2s infinite ease-in-out;
+}
+
+.crisis-active .clock-timer {
+  text-shadow: 0 0 40px rgba(255, 45, 85, 0.6);
+}
+
+@keyframes crisis-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.2); }
+  50% { box-shadow: 0 0 40px 10px rgba(255, 45, 85, 0.1); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.2); }
 }
 
 .clock-telemetry {
