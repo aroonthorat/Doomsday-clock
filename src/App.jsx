@@ -12,7 +12,20 @@ const App = () => {
     reason: 'Data synchronization pending...' 
   };
   
-  const [timeLeft, setTimeLeft] = useState(currentStatus.secondsToMidnight || 90);
+  // Persistent storage initialization
+  const getInitialTime = () => {
+    const savedTime = localStorage.getItem('doomsday_clock_time');
+    const savedTimestamp = localStorage.getItem('doomsday_clock_timestamp');
+    
+    if (savedTime && savedTimestamp) {
+      const elapsed = Math.floor((Date.now() - parseInt(savedTimestamp)) / 1000);
+      const adjustedTime = Math.max(0, parseInt(savedTime) - elapsed);
+      return adjustedTime;
+    }
+    return currentStatus.secondsToMidnight || 90;
+  };
+
+  const [timeLeft, setTimeLeft] = useState(getInitialTime);
   
   // Process news data into a flat array of articles with categories
   const allArticles = Object.entries(newsData.categories).flatMap(([catKey, articles]) => 
@@ -59,6 +72,12 @@ const App = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Update localStorage every second
+  useEffect(() => {
+    localStorage.setItem('doomsday_clock_time', timeLeft.toString());
+    localStorage.setItem('doomsday_clock_timestamp', Date.now().toString());
+  }, [timeLeft]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
