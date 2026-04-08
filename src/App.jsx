@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+
+const CONFIG_ERROR = !supabase;
 function App() {
   const [timeLeft, setTimeLeft] = useState(90);
   const [articles, setArticles] = useState([]);
@@ -13,6 +15,8 @@ function App() {
   const [showExplanation, setShowExplanation] = useState(false);
 
   useEffect(() => {
+    if (CONFIG_ERROR) return;
+
     fetchData();
     
     // Subscribe to real-time updates
@@ -32,12 +36,13 @@ function App() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(statusSubscription);
-      supabase.removeChannel(newsSubscription);
+      if (statusSubscription) supabase.removeChannel(statusSubscription);
+      if (newsSubscription) supabase.removeChannel(newsSubscription);
     };
   }, []);
 
   async function fetchData() {
+    if (CONFIG_ERROR) return;
     setLoading(true);
     await Promise.all([fetchStatus(), fetchArticles()]);
     setLoading(false);
@@ -158,6 +163,28 @@ function App() {
     { id: 3, category: 'AI', impact: -8, text: 'Deployment of offensive autonomous cyber-units by non-state actors in Europe.' },
     { id: 4, category: 'Geo-Political', impact: -4, text: 'Diplomatic breakdown in the Arctic over resource extraction rights.' }
   ];
+
+  if (CONFIG_ERROR) {
+    return (
+      <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', textAlign: 'center', padding: '2rem' }}>
+        <div className="brand" style={{ marginBottom: '2rem' }}>DOOMSDAY<span>CLOCK</span></div>
+        <div style={{ background: 'rgba(255, 45, 85, 0.1)', border: '1px solid var(--accent-nuclear)', padding: '2rem', borderRadius: '12px', maxWidth: '600px' }}>
+          <h2 style={{ color: 'var(--accent-nuclear)', marginBottom: '1rem' }}>CONFIGURATION ERROR</h2>
+          <p style={{ color: 'var(--text-primary)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+            The application is missing required environment variables to connect to the Global Risk Database.
+          </p>
+          <div style={{ textAlign: 'left', background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'monospace' }}>
+            <div style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>// Required Variables:</div>
+            <div style={{ color: '#fff' }}>VITE_SUPABASE_URL</div>
+            <div style={{ color: '#fff' }}>VITE_SUPABASE_ANON_KEY</div>
+          </div>
+          <p style={{ marginTop: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+            Please add these to your Vercel project settings and redeploy.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
