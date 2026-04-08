@@ -4,50 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Global Risk Clock | AI-driven indicator</title>
+    <title>Doomsday Clock | Global Risk Analytics</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="app">
-      <header>
-        <h1>Global Risk Clock</h1>
-        <p class="subtitle">AI-driven global risk indicator</p>
-      </header>
-      
-      <main>
-        <div class="clock-wrapper">
-          <svg id="risk-clock" viewBox="0 0 200 200">
-            <!-- Background Ring -->
-            <circle class="ring-bg" cx="100" cy="100" r="90" fill="none" stroke-width="8"/>
-            
-            <!-- Scale/Ticks -->
-            <g class="ticks" id="clock-ticks"></g>
-            
-            <!-- Needle -->
-            <line id="needle" x1="100" y1="100" x2="100" y2="20" stroke-linecap="round" />
-            <circle cx="100" cy="100" r="4" fill="currentColor" />
-          </svg>
-          
-          <div class="time-display">
-            <span id="time-to-midnight">05:00</span>
-            <span class="to-midnight">to midnight</span>
-          </div>
-        </div>
-        
-        <section class="risk-info">
-          <div class="risk-score-card">
-            <span class="label">Current Risk Score</span>
-            <span id="risk-score" class="score">0</span>
-          </div>
-        </section>
-      </main>
-      
-      <footer>
-        <p>&copy; 2026 Doomsday Analytics. All systems nominal.</p>
-      </footer>
-    </div>
-    <script type="module" src="/main.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
