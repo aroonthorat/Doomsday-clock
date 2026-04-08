@@ -171,6 +171,44 @@ header {
   letter-spacing: -2px;
 }
 
+.change-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.change-indicator.animate-glow {
+  animation: indicator-glow 1.5s ease-out;
+}
+
+.change-positive {
+  color: var(--accent-tech);
+  text-shadow: 0 0 10px rgba(0, 255, 115, 0.3);
+}
+
+.change-negative {
+  color: var(--accent-nuclear);
+  text-shadow: 0 0 10px rgba(255, 45, 85, 0.3);
+}
+
+.change-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+
+@keyframes indicator-glow {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
 .risk-level {
   display: flex;
   align-items: center;
