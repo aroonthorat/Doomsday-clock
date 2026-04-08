@@ -80,6 +80,10 @@ const TrendGraph = ({ data }) => {
 const CONFIG_ERROR = !supabase;
 function App() {
   const [timeLeft, setTimeLeft] = useState(90);
+  const [syncData, setSyncData] = useState({ 
+    seconds: 90, 
+    timestamp: Date.now() 
+  });
   const [articles, setArticles] = useState([]);
   const [currentStatus, setCurrentStatus] = useState({ 
     secondsToMidnight: 90, 
@@ -105,8 +109,12 @@ function App() {
     const statusSubscription = supabase
       .channel('public:clock_status')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'clock_status' }, payload => {
+        const serverTime = new Date(payload.new.created_at).getTime();
+        setSyncData({ 
+          seconds: payload.new.seconds_to_midnight, 
+          timestamp: serverTime 
+        });
         setCurrentStatus(payload.new);
-        setTimeLeft(payload.new.seconds_to_midnight);
         fetchStatus(); // Re-fetch to update daily change
       })
       .subscribe();
@@ -141,7 +149,11 @@ function App() {
 
     if (data) {
       setCurrentStatus(data);
-      setTimeLeft(data.seconds_to_midnight);
+      const serverTime = new Date(data.created_at).getTime();
+      setSyncData({ 
+        seconds: data.seconds_to_midnight, 
+        timestamp: serverTime 
+      });
 
       // Fetch status from 24h ago
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -225,6 +237,26 @@ function App() {
 
   const totalImpact = categoryContributions.reduce((acc, curr) => acc + Math.abs(curr.score), 0);
 
+  // Calculate Data Confidence System
+  const confidenceScore = useMemo(() => {
+    if (articles.length === 0) return 0;
+    
+    const validArticles = articles.filter(a => a.ai_analysis && a.ai_analysis.credibility);
+    if (validArticles.length === 0) return 50;
+
+    const avgCredibility = validArticles.reduce((acc, a) => {
+      const credStr = a.ai_analysis.credibility.toString();
+      const num = parseInt(credStr.replace(/[^0-9]/g, '')) || 85;
+      return acc + num;
+    }, 0) / validArticles.length;
+
+    // Weight: 70% Quality (Credibility), 30% Quantity (Volume)
+    const volumeFactor = Math.min(1, articles.length / 50); // 50 articles for max volume bonus
+    const finalScore = (avgCredibility * 0.7) + (volumeFactor * 30);
+    
+    return Math.round(Math.min(99, finalScore));
+  }, [articles]);
+
   // Risk Category Breakdown Data
   const riskCategories = [
     { label: 'Nuclear', score: 82, color: 'var(--accent-nuclear)', key: 'nuclear' },
@@ -240,13 +272,15 @@ function App() {
     return 'risk-low';
   };
 
-  // Countdown logic
+  // Continuous Real-Time Engine
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    const ticker = setInterval(() => {
+      const elapsed = (Date.now() - syncData.timestamp) / 1000;
+      const current = Math.max(0, syncData.seconds - elapsed);
+      setTimeLeft(current);
+    }, 100);
+    return () => clearInterval(ticker);
+  }, [syncData]);
 
   // Update localStorage every second
   useEffect(() => {
@@ -256,9 +290,26 @@ function App() {
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const s = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   };
+
+  const categoryMapping = {
+    'Nuclear': 'nuclear',
+    'Climate': 'climate',
+    'AI': 'ai',
+    'Pandemic': 'pandemic',
+    'Fragile State': 'fragile-state'
+  };
+
+  const IMPACT_EVENTS = [
+    { id: 1, title: 'Missile test detected', category: 'Nuclear', impact: -12 },
+    { id: 2, title: 'Climate agreement signed', category: 'Climate', impact: 5 },
+    { id: 3, title: 'AI safety protocol breach', category: 'AI', impact: -8 },
+    { id: 4, title: 'Global healthcare expansion', category: 'Pandemic', impact: 3 },
+    { id: 5, title: 'Border escalation in contested zone', category: 'Fragile State', impact: -15 }
+  ];
 
   
   const categoryKeys = Object.keys(categoryMap);
@@ -344,8 +395,18 @@ function App() {
           <div className="clock-telemetry">
             <div className="clock-status-tag">Live Risk Assessment</div>
             <h1>The World is at</h1>
-            <div className="clock-timer">{formatTime(timeLeft)}</div>
+            <div key={Math.floor(timeLeft)} className="clock-timer ticking">{formatTime(timeLeft)}</div>
             
+            <div className="confidence-system">
+              <div className="confidence-header">
+                <span className="confidence-label">Confidence: {confidenceScore}%</span>
+                <div className="confidence-meter">
+                  <div className="confidence-fill" style={{ width: `${confidenceScore}%` }}></div>
+                </div>
+              </div>
+              <span className="confidence-tag">Based on analyzed global news</span>
+            </div>
+
             <div className={`change-indicator ${isGlowActive ? 'animate-glow' : ''} ${dailyChange >= 0 ? 'change-positive' : 'change-negative'}`}>
               <span className="change-value">
                 {dailyChange > 0 ? '+' : ''}{dailyChange.toFixed(2)}s
@@ -392,6 +453,28 @@ function App() {
                 ))}
               </div>
             </div>
+
+            <div className="impact-events-panel">
+              <div className="panel-header">
+                <h3>Top Impact Events</h3>
+                <span className="panel-badge">REAL-TIME DATA</span>
+              </div>
+              <div className="impact-list">
+                {IMPACT_EVENTS.map(event => (
+                  <div key={event.id} className="impact-item">
+                    <div className="impact-info">
+                      <span className="impact-title">{event.title}</span>
+                      <span className={`impact-category-chip ${categoryMapping[event.category]}`}>
+                        {event.category}
+                      </span>
+                    </div>
+                    <div className={`impact-score-box ${event.impact < 0 ? 'negative' : 'positive'}`}>
+                      {event.impact > 0 ? '+' : ''}{event.impact}s
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
@@ -424,12 +507,25 @@ function App() {
                </defs>
 
                {/* Hands */}
-               <line x1="50" y1="50" x2="50" y2="15" stroke="var(--accent-nuclear)" strokeWidth="1.5" strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 5px var(--accent-nuclear))' }}>
-                  <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="60s" repeatCount="indefinite" />
-               </line>
-               <line x1="50" y1="50" x2="75" y2="50" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.8">
-                  <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3600s" repeatCount="indefinite" />
-               </line>
+               <line 
+                 x1="50" y1="50" x2="50" y2="15" 
+                 stroke="var(--accent-nuclear)" strokeWidth="1.5" strokeLinecap="round" 
+                 style={{ 
+                   filter: 'drop-shadow(0 0 5px var(--accent-nuclear))',
+                   transformOrigin: '50px 50px',
+                   transform: `rotate(${-timeLeft * 6}deg)`,
+                   transition: 'transform 0.1s linear'
+                 }} 
+               />
+               <line 
+                 x1="50" y1="50" x2="50" y2="25" 
+                 stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.9"
+                 style={{ 
+                   transformOrigin: '50px 50px',
+                   transform: `rotate(${-timeLeft / 10}deg)`,
+                   transition: 'transform 0.1s linear'
+                 }} 
+               />
                 <circle cx="50" cy="50" r="2" fill="white" />
              </svg>
           </div>
