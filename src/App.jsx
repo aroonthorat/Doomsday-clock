@@ -20,6 +20,37 @@ const App = () => {
   );
   
   const [articles] = useState(allArticles);
+  const [showExplanation, setShowExplanation] = useState(false);
+
+  const categoryMap = {
+    'nuclear': 'Nuclear',
+    'climate': 'Climate',
+    'ai': 'Artificial Intelligence',
+    'disruptive_tech': 'Disruptive Tech',
+    'fragile_state': 'Fragile States'
+  };
+
+  // Top 5 IMPACTFUL articles (most negative score)
+  const topImpactfulNews = [...articles]
+    .filter(a => a.ai_analysis)
+    .sort((a, b) => (a.ai_analysis.score || 0) - (b.ai_analysis.score || 0))
+    .slice(0, 5);
+
+  // Category Contributions
+  const categoryContributions = Object.keys(newsData.categories).map(catKey => {
+    const catArticles = articles.filter(a => a.category === catKey);
+    const avgScore = catArticles.length > 0
+      ? catArticles.reduce((acc, curr) => acc + (curr.ai_analysis?.score || 0), 0) / catArticles.length
+      : 0;
+    return {
+      key: catKey,
+      label: categoryMap?.[catKey] || catKey,
+      score: avgScore,
+      count: catArticles.length
+    };
+  }).sort((a, b) => a.score - b.score);
+
+  const totalImpact = categoryContributions.reduce((acc, curr) => acc + Math.abs(curr.score), 0);
 
   // Countdown logic
   useEffect(() => {
@@ -35,13 +66,6 @@ const App = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const categoryMap = {
-    'nuclear': 'Nuclear',
-    'climate': 'Climate',
-    'ai': 'Artificial Intelligence',
-    'disruptive_tech': 'Disruptive Tech',
-    'fragile_state': 'Fragile States'
-  };
   
   const categoryKeys = Object.keys(newsData.categories);
   
@@ -60,10 +84,15 @@ const App = () => {
 
       <header>
         <div className="brand">DOOMSDAY<span>CLOCK</span></div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '1px' }}>SYSTEM ONLINE</div>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem' }}>
-            SYNC: {new Date(currentStatus.lastUpdated).toLocaleTimeString()}
+        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+          <button className="explanation-toggle" onClick={() => setShowExplanation(true)}>
+            WHY IS IT MOVING?
+          </button>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '1px' }}>SYSTEM ONLINE</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem' }}>
+              SYNC: {new Date(currentStatus.lastUpdated).toLocaleTimeString()}
+            </div>
           </div>
         </div>
       </header>
@@ -177,10 +206,10 @@ const App = () => {
                   {article.ai_analysis && (
                     <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.75rem' }}>
                       <div style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', color: 'var(--text-secondary)' }}>
-                        Score: <span style={{ color: 'var(--text-primary)' }}>{article.ai_analysis.risk_score}/10</span>
+                        Severity: <span style={{ color: 'var(--text-primary)' }}>{article.ai_analysis.severity}/10</span>
                       </div>
                       <div style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', color: 'var(--text-secondary)' }}>
-                        Impact: <span style={{ color: 'var(--text-primary)' }}>{article.ai_analysis.volatility}</span>
+                        Impact: <span style={{ color: 'var(--text-primary)' }}>{article.ai_analysis.score.toFixed(2)}</span>
                       </div>
                     </div>
                   )}
@@ -199,6 +228,56 @@ const App = () => {
       <footer style={{ marginTop: '5rem', padding: '2rem 0', borderTop: '1px solid var(--glass-border)', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
         &copy; 2026 DOOMSDAY CLOCK TRACKER • DATA SUBJECT TO VOLATILITY
       </footer>
+
+      {/* Explanation Panel */}
+      <div className={`explanation-panel ${showExplanation ? 'open' : ''}`}>
+        <div className="explanation-header">
+          <h2>Risk Analysis</h2>
+          <button className="close-btn" onClick={() => setShowExplanation(false)}>&times;</button>
+        </div>
+        
+        <div className="explanation-content">
+          <div className="explanation-block">
+            <h3>Why the clock moved today</h3>
+            <p>{currentStatus.reason}</p>
+          </div>
+
+          <div className="explanation-block">
+            <h3>Category Contributions</h3>
+            <div className="contribution-list">
+              {categoryContributions.map(cat => (
+                <div key={cat.key} className="contribution-item">
+                  <div className="contribution-label">
+                    <span>{cat.label}</span>
+                    <span>{Math.round((Math.abs(cat.score) / (totalImpact || 1)) * 100)}%</span>
+                  </div>
+                  <div className="contribution-bar-bg">
+                    <div 
+                      className={`contribution-bar-fill ${cat.key}`} 
+                      style={{ width: `${(Math.abs(cat.score) / (totalImpact || 1)) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="explanation-block">
+            <h3>Top 5 Impactful News</h3>
+            <div className="top-news-list">
+              {topImpactfulNews.map((article, i) => (
+                <a key={i} href={article.link} target="_blank" rel="noopener noreferrer" className="top-news-item">
+                  <div className="news-rank">#{i+1}</div>
+                  <div className="news-info">
+                    <div className="news-title">{article.title}</div>
+                    <div className="news-score">Impact: {article.ai_analysis.score.toFixed(2)}</div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 from datetime import datetime
 
 CATEGORY_WEIGHTS = {
@@ -9,6 +10,23 @@ CATEGORY_WEIGHTS = {
     'pandemic': 0.15,
     'economy': 0.10
 }
+
+CRISIS_TRIGGERS = {
+    "WAR": {
+        "keywords": ["WW3", "WAR BREAKS OUT", "INVADES", "INVASION", "MISSILE STRIKE"],
+        "shift": -45
+    },
+    "NUCLEAR": {
+        "keywords": ["NUCLEAR", "ATOMIC", "ICBM", "DOOMSDAY DEVICE"],
+        "shift": -60
+    },
+    "PANDEMIC": {
+        "keywords": ["PANDEMIC", "OUTBREAK", "WHO DECLARES", "VIRUS SPREADS"],
+        "shift": -30
+    }
+}
+
+CRISIS_LOG_PATH = r'e:\Codespace\Doomsday Clock\src\data\crises.json'
 
 def classify_article(article):
     title = article['title'].lower()
@@ -109,7 +127,51 @@ def update_historical_scores(category_averages, global_score):
     with open(history_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2)
 
-def update_clock_time():
+def get_crisis_id(title):
+    return hashlib.md5(title.lower().encode()).hexdigest()
+
+def detect_crises(articles):
+    detected = []
+    seen_ids = set()
+    if os.path.exists(CRISIS_LOG_PATH):
+        with open(CRISIS_LOG_PATH, 'r', encoding='utf-8') as f:
+            try:
+                log = json.load(f)
+                seen_ids = {entry['id'] for entry in log}
+            except:
+                seen_ids = set()
+    
+    for art in articles:
+        title = art.get('title', '').upper()
+        for category, config in CRISIS_TRIGGERS.items():
+            for kw in config['keywords']:
+                if kw in title:
+                    cid = get_crisis_id(art['title'])
+                    if cid not in seen_ids:
+                        detected.append({
+                            "id": cid,
+                            "timestamp": datetime.now().isoformat(),
+                            "category": category,
+                            "title": art['title'],
+                            "shift": config['shift']
+                        })
+                        seen_ids.add(cid)
+    return detected
+
+def update_crises_log(new_crises):
+    if not new_crises: return
+    log = []
+    if os.path.exists(CRISIS_LOG_PATH):
+        with open(CRISIS_LOG_PATH, 'r', encoding='utf-8') as f:
+            try:
+                log = json.load(f)
+            except:
+                log = []
+    log.extend(new_crises)
+    with open(CRISIS_LOG_PATH, 'w', encoding='utf-8') as f:
+        json.dump(log, f, indent=2)
+
+def update_clock_time(articles=[]):
     status_path = r'e:\Codespace\Doomsday Clock\src\data\clockStatus.json'
     history_path = r'e:\Codespace\Doomsday Clock\src\data\historical_scores.json'
     
@@ -140,10 +202,18 @@ def update_clock_time():
     MAX_SCORE_THRESHOLD = 5.0
     MAX_MOVEMENT = 20.0
     
-    delta = (smoothed_score / MAX_SCORE_THRESHOLD) * MAX_MOVEMENT
-    
-    # Clamp delta
-    delta = max(-MAX_MOVEMENT, min(MAX_MOVEMENT, delta))
+    # Crisis override logic
+    new_crises = detect_crises(articles)
+    if new_crises:
+        # Take the maximum shift (most negative)
+        instant_shift = min(c['shift'] for c in new_crises)
+        delta = instant_shift
+        update_crises_log(new_crises)
+        print(f"!!! CRISIS DETECTED: Applying instant shift of {delta}s")
+    else:
+        delta = (smoothed_score / MAX_SCORE_THRESHOLD) * MAX_MOVEMENT
+        # Clamp delta
+        delta = max(-MAX_MOVEMENT, min(MAX_MOVEMENT, delta))
     
     new_seconds = current_seconds + delta
     
@@ -211,8 +281,13 @@ def process_file():
     # Persist historical data
     update_historical_scores(category_averages, global_score)
     
+    # Flatten all articles into a single list for crisis detection
+    all_articles = []
+    for cat in data['categories']:
+        all_articles.extend(data['categories'][cat])
+        
     # Finally, move the clock
-    update_clock_time()
+    update_clock_time(all_articles)
     print(f"Scores calculated: Global={global_score:.4f}")
 
 if __name__ == "__main__":
