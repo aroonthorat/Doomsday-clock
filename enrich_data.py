@@ -109,6 +109,63 @@ def update_historical_scores(category_averages, global_score):
     with open(history_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2)
 
+def update_clock_time():
+    status_path = r'e:\Codespace\Doomsday Clock\src\data\clockStatus.json'
+    history_path = r'e:\Codespace\Doomsday Clock\src\data\historical_scores.json'
+    
+    if not os.path.exists(history_path) or not os.path.exists(status_path):
+        return
+        
+    with open(history_path, 'r', encoding='utf-8') as f:
+        try:
+            history = json.load(f)
+        except json.JSONDecodeError:
+            return
+        
+    if not history:
+        return
+        
+    latest_entry = history[-1]
+    smoothed_score = latest_entry.get('smoothed_score', 0)
+    
+    with open(status_path, 'r', encoding='utf-8') as f:
+        try:
+            status = json.load(f)
+        except json.JSONDecodeError:
+            status = {"secondsToMidnight": 90}
+        
+    current_seconds = status.get('secondsToMidnight', 90)
+    
+    # Scaling: Max +/- 5.0 score maps to +/- 20 seconds
+    MAX_SCORE_THRESHOLD = 5.0
+    MAX_MOVEMENT = 20.0
+    
+    delta = (smoothed_score / MAX_SCORE_THRESHOLD) * MAX_MOVEMENT
+    
+    # Clamp delta
+    delta = max(-MAX_MOVEMENT, min(MAX_MOVEMENT, delta))
+    
+    new_seconds = current_seconds + delta
+    
+    # Safeguard: Minimum 10 seconds to midnight
+    new_seconds = max(10, new_seconds)
+    
+    status['secondsToMidnight'] = round(new_seconds, 2)
+    status['lastUpdated'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+    
+    # Dynamic reason based on score
+    if smoothed_score < -1:
+        status['reason'] = "Heightened global risk detected through news sentiment analysis."
+    elif smoothed_score > 1:
+        status['reason'] = "Minor de-escalation in global threat categories."
+    else:
+        status['reason'] = "Sustained global tension with stable metrics."
+        
+    with open(status_path, 'w', encoding='utf-8') as f:
+        json.dump(status, f, indent=2)
+    
+    print(f"Clock Updated: {current_seconds} -> {status['secondsToMidnight']} (Delta: {delta:.2f}s)")
+
 def process_file():
     input_path = r'e:\Codespace\Doomsday Clock\src\data\news.json'
     if not os.path.exists(input_path):
@@ -153,6 +210,9 @@ def process_file():
         
     # Persist historical data
     update_historical_scores(category_averages, global_score)
+    
+    # Finally, move the clock
+    update_clock_time()
     print(f"Scores calculated: Global={global_score:.4f}")
 
 if __name__ == "__main__":
