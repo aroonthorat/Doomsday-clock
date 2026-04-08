@@ -175,6 +175,73 @@ header {
   100% { box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.2); }
 }
 
+/* Trend Graph */
+.trend-container {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.trend-header {
+  margin-bottom: 1.5rem;
+}
+
+.trend-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.trend-header p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.trend-viz {
+  width: 100%;
+  overflow: visible;
+}
+
+.axis-label {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-body);
+}
+
+.marker-label {
+  font-family: var(--font-heading);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.marker-label.danger {
+  fill: #ff2d55;
+}
+
+.marker-label.safe {
+  fill: #00ff7f;
+}
+
+.pulse-marker {
+  animation: marker-pulse 2s infinite ease-out;
+}
+
+@keyframes marker-pulse {
+  0% { r: 6; opacity: 1; }
+  100% { r: 18; opacity: 0; }
+}
+
+.trend-path {
+  filter: drop-shadow(0 0 8px rgba(0, 242, 255, 0.3));
+}
+
 .clock-telemetry {
   display: flex;
   flex-direction: column;

@@ -1,5 +1,81 @@
 import React, { useState, useEffect } from 'react';
+import './index.css';
 import { supabase } from './supabaseClient';
+
+const TREND_DATA = [
+  { date: '04/02', seconds: 120 },
+  { date: '04/03', seconds: 95 },
+  { date: '04/04', seconds: 110 },
+  { date: '04/05', seconds: 82 },
+  { date: '04/06', seconds: 135 },
+  { date: '04/07', seconds: 90 },
+  { date: '04/08', seconds: 71 },
+];
+
+const TrendGraph = ({ data }) => {
+  const width = 1000;
+  const height = 150;
+  const padding = 40;
+
+  const minVal = Math.min(...data.map(d => d.seconds));
+  const maxVal = Math.max(...data.map(d => d.seconds));
+
+  const points = data.map((d, i) => ({
+    x: (i / (data.length - 1)) * (width - padding * 2) + padding,
+    y: height - ((d.seconds - minVal) / (maxVal - minVal)) * (height - padding * 2) - padding,
+    val: d.seconds,
+    date: d.date,
+    isDanger: d.seconds === minVal,
+    isSafe: d.seconds === maxVal
+  }));
+
+  const pathData = points.reduce((acc, p, i) => 
+    i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, ''
+  );
+
+  const areaData = `${pathData} L ${points[points.length-1].x} ${height} L ${points[0].x} ${height} Z`;
+
+  return (
+    <div className="trend-container">
+      <div className="trend-header">
+        <h3>7-Day Risk Trend</h3>
+        <p>Movement in seconds to midnight</p>
+      </div>
+      <div className="trend-viz">
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--neon-cyan)" />
+              <stop offset="100%" stopColor="#ff2d55" />
+            </linearGradient>
+            <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(0, 242, 255, 0.1)" />
+              <stop offset="100%" stopColor="transparent" />
+            </linearGradient>
+          </defs>
+          
+          <path d={areaData} fill="url(#areaGradient)" />
+          <path d={pathData} fill="none" stroke="url(#lineGradient)" strokeWidth="3" strokeLinecap="round" className="trend-path" />
+          
+          {points.map((p, i) => (
+            <g key={i}>
+              <circle cx={p.x} cy={p.y} r="4" fill="var(--bg-card)" stroke="white" strokeWidth="2" />
+              {(p.isDanger || p.isSafe) && (
+                <g>
+                  <circle cx={p.x} cy={p.y} r="10" fill={p.isDanger ? 'rgba(255, 45, 85, 0.2)' : 'rgba(0, 255, 127, 0.2)'} className="pulse-marker" />
+                  <text x={p.x} y={p.y - 15} textAnchor="middle" className={`marker-label ${p.isDanger ? 'danger' : 'safe'}`}>
+                    {p.isDanger ? 'MAX RISK' : 'STABLE'}
+                  </text>
+                </g>
+              )}
+              <text x={p.x} y={height - 5} textAnchor="middle" className="axis-label">{p.date}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    </div>
+  );
+};
 
 const CONFIG_ERROR = !supabase;
 function App() {
@@ -245,6 +321,8 @@ function App() {
           </div>
         </div>
       )}
+
+      <TrendGraph data={TREND_DATA} />
 
       <header>
         <div className="brand">DOOMSDAY<span>CLOCK</span></div>
