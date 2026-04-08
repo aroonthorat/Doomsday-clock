@@ -83,16 +83,27 @@ def update_historical_scores(category_averages, global_score):
             except json.JSONDecodeError:
                 history = []
                 
-    entry = {
-        "date": today,
-        "global_score": round(global_score, 4),
-        "categories": {cat: round(avg, 4) for cat, avg in category_averages.items()}
-    }
+    # Create or update today's entry
+    today_entry = next((e for e in history if e['date'] == today), None)
+    if today_entry:
+        today_entry['global_score'] = round(global_score, 4)
+        today_entry['categories'] = {cat: round(avg, 4) for cat, avg in category_averages.items()}
+    else:
+        today_entry = {
+            "date": today,
+            "global_score": round(global_score, 4),
+            "categories": {cat: round(avg, 4) for cat, avg in category_averages.items()}
+        }
+        history.append(today_entry)
     
-    # Update or append
-    history = [e for e in history if e['date'] != today]
-    history.append(entry)
+    # Sort history by date to ensure window is correct
     history.sort(key=lambda x: x['date'])
+    
+    # Calculate smoothed scores (3-day moving average)
+    for i in range(len(history)):
+        window = history[max(0, i-2) : i+1]
+        window_scores = [e['global_score'] for e in window]
+        history[i]['smoothed_score'] = round(sum(window_scores) / len(window_scores), 4)
     
     os.makedirs(os.path.dirname(history_path), exist_ok=True)
     with open(history_path, 'w', encoding='utf-8') as f:

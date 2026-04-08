@@ -1,5 +1,29 @@
 [
   {
+    "date": "2026-04-06",
+    "global_score": -1.0,
+    "categories": {
+      "nuclear": -0.5,
+      "climate": -0.2,
+      "ai": -0.1,
+      "pandemic": -0.1,
+      "economy": -0.1
+    },
+    "smoothed_score": -1.0
+  },
+  {
+    "date": "2026-04-07",
+    "global_score": -1.5,
+    "categories": {
+      "nuclear": -0.8,
+      "climate": -0.3,
+      "ai": -0.1,
+      "pandemic": -0.2,
+      "economy": -0.1
+    },
+    "smoothed_score": -1.25
+  },
+  {
     "date": "2026-04-08",
     "global_score": -2.0659,
     "categories": {
@@ -8,6 +32,7 @@
       "ai": -0.0189,
       "pandemic": -0.0381,
       "economy": -0.0936
-    }
+    },
+    "smoothed_score": -1.522
   }
 ]
