@@ -10,11 +10,12 @@
     "update-news": "node --env-file=.env scripts/fetch_news.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.102.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "vite": "^6.0.0",
-    "@vitejs/plugin-react": "^4.3.4"
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.0"
   }
 }

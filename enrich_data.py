@@ -2,6 +2,11 @@ import json
 import os
 import hashlib
 from datetime import datetime
+from dotenv import load_dotenv
+from supabase import create_client, Client
+
+# Load environment variables
+load_dotenv()
 
 CATEGORY_WEIGHTS = {
     'nuclear': 0.35,
@@ -234,6 +239,19 @@ def update_clock_time(articles=[]):
     with open(status_path, 'w', encoding='utf-8') as f:
         json.dump(status, f, indent=2)
     
+    # Upsert to Supabase
+    try:
+        supabase_url = os.environ.get("VITE_SUPABASE_URL")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        if supabase_url and supabase_key:
+            supabase: Client = create_client(supabase_url, supabase_key)
+            supabase.table("clock_status").insert({
+                "seconds_to_midnight": status['secondsToMidnight'],
+                "reason": status['reason']
+            }).execute()
+    except Exception as e:
+        print(f"Supabase Error (Clock Status): {e}")
+
     print(f"Clock Updated: {current_seconds} -> {status['secondsToMidnight']} (Delta: {delta:.2f}s)")
 
 def process_file():
@@ -281,6 +299,34 @@ def process_file():
     # Persist historical data
     update_historical_scores(category_averages, global_score)
     
+    # Upsert articles to Supabase
+    try:
+        supabase_url = os.environ.get("VITE_SUPABASE_URL")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        if supabase_url and supabase_key:
+            supabase: Client = create_client(supabase_url, supabase_key)
+            
+            all_articles_to_sync = []
+            for cat, articles in data['categories'].items():
+                for art in articles:
+                    all_articles_to_sync.append({
+                        "title": art['title'],
+                        "source": art['source'],
+                        "published_at": art.get('pubDate'),
+                        "category": cat,
+                        "url": art['link'],
+                        "polarity": art['ai_analysis']['polarity'],
+                        "severity": art['ai_analysis']['severity'],
+                        "credibility": art['ai_analysis']['credibility'],
+                        "score": art['ai_analysis']['score']
+                    })
+            
+            if all_articles_to_sync:
+                # Upsert using 'url' as unique identifier (standard in Supabase upsert)
+                supabase.table("news_articles").upsert(all_articles_to_sync, on_conflict="url").execute()
+    except Exception as e:
+        print(f"Supabase Error (Articles): {e}")
+
     # Flatten all articles into a single list for crisis detection
     all_articles = []
     for cat in data['categories']:

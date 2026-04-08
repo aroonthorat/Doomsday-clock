@@ -25,10 +25,14 @@
   },
   {
     "date": "2026-04-08",
-    "global_score": -3.2319,
+    "global_score": -2.0659,
     "categories": {
-      "nuclear": -3.2319
+      "nuclear": -1.724,
+      "climate": -0.1913,
+      "ai": -0.0189,
+      "pandemic": -0.0381,
+      "economy": -0.0936
     },
-    "smoothed_score": -1.9106
+    "smoothed_score": -1.522
   }
 ]

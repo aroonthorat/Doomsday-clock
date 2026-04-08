@@ -1,39 +1,83 @@
 import React, { useState, useEffect } from 'react';
-import newsData from './data/news.json';
-import clockStatus from './data/clockStatus.json';
-
-const App = () => {
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  
-  // Support both object and array structure
-  const currentStatus = (Array.isArray(clockStatus) ? clockStatus[0] : clockStatus) || { 
+import { supabase } from './supabaseClient';
+function App() {
+  const [timeLeft, setTimeLeft] = useState(90);
+  const [articles, setArticles] = useState([]);
+  const [currentStatus, setCurrentStatus] = useState({ 
     secondsToMidnight: 90, 
     lastUpdated: new Date().toISOString(), 
-    reason: 'Data synchronization pending...' 
-  };
-  
-  // Persistent storage initialization
-  const getInitialTime = () => {
-    const savedTime = localStorage.getItem('doomsday_clock_time');
-    const savedTimestamp = localStorage.getItem('doomsday_clock_timestamp');
-    
-    if (savedTime && savedTimestamp) {
-      const elapsed = Math.floor((Date.now() - parseInt(savedTimestamp)) / 1000);
-      const adjustedTime = Math.max(0, parseInt(savedTime) - elapsed);
-      return adjustedTime;
-    }
-    return currentStatus.secondsToMidnight || 90;
-  };
-
-  const [timeLeft, setTimeLeft] = useState(getInitialTime);
-  
-  // Process news data into a flat array of articles with categories
-  const allArticles = Object.entries(newsData.categories).flatMap(([catKey, articles]) => 
-    articles.map(article => ({ ...article, category: catKey }))
-  );
-  
-  const [articles] = useState(allArticles);
+    reason: 'Authenticating with Command Center...' 
+  });
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [showExplanation, setShowExplanation] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+    
+    // Subscribe to real-time updates
+    const statusSubscription = supabase
+      .channel('public:clock_status')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'clock_status' }, payload => {
+        setCurrentStatus(payload.new);
+        setTimeLeft(payload.new.seconds_to_midnight);
+      })
+      .subscribe();
+
+    const newsSubscription = supabase
+      .channel('public:news_articles')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'news_articles' }, () => {
+        fetchArticles();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(statusSubscription);
+      supabase.removeChannel(newsSubscription);
+    };
+  }, []);
+
+  async function fetchData() {
+    setLoading(true);
+    await Promise.all([fetchStatus(), fetchArticles()]);
+    setLoading(false);
+  }
+
+  async function fetchStatus() {
+    const { data, error } = await supabase
+      .from('clock_status')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data) {
+      setCurrentStatus(data);
+      // Logic for adjusting time based on drift if needed
+      setTimeLeft(data.seconds_to_midnight);
+    }
+  }
+
+  async function fetchArticles() {
+    const { data, error } = await supabase
+      .from('news_articles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      // Map Supabase snake_case to app structure if necessary
+      const mapped = data.map(a => ({
+        ...a,
+        ai_analysis: {
+          polarity: a.polarity,
+          severity: a.severity,
+          credibility: a.credibility,
+          score: a.score
+        }
+      }));
+      setArticles(mapped);
+    }
+  }
 
   const categoryMap = {
     'nuclear': 'Nuclear',
@@ -50,14 +94,14 @@ const App = () => {
     .slice(0, 5);
 
   // Category Contributions
-  const categoryContributions = Object.keys(newsData.categories).map(catKey => {
+  const categoryContributions = Object.keys(categoryMap).map(catKey => {
     const catArticles = articles.filter(a => a.category === catKey);
     const avgScore = catArticles.length > 0
       ? catArticles.reduce((acc, curr) => acc + (curr.ai_analysis?.score || 0), 0) / catArticles.length
       : 0;
     return {
       key: catKey,
-      label: categoryMap?.[catKey] || catKey,
+      label: categoryMap[catKey],
       score: avgScore,
       count: catArticles.length
     };
@@ -86,7 +130,7 @@ const App = () => {
   };
 
   
-  const categoryKeys = Object.keys(newsData.categories);
+  const categoryKeys = Object.keys(categoryMap);
   
   const getCount = (catKey) => articles.filter(a => a.category === catKey).length;
 
@@ -96,6 +140,14 @@ const App = () => {
 
   return (
     <div className="container">
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loader"></div>
+          <div style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.8rem', letterSpacing: '2px' }}>
+            INITIALIZING SECURE LINK...
+          </div>
+        </div>
+      )}
       <div className="bg-glow">
         <div className="glow-orb" style={{ top: '10%', right: '10%', opacity: 0.15 }}></div>
         <div className="glow-orb" style={{ bottom: '20%', left: '5%', background: 'radial-gradient(circle, rgba(0, 242, 255, 0.08) 0%, transparent 70%)' }}></div>
