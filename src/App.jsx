@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './index.css';
 import { supabase } from './supabaseClient';
 
@@ -46,7 +46,7 @@ const TrendGraph = ({ data }) => {
           <defs>
             <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="var(--neon-cyan)" />
-              <stop offset="100%" stopColor="#ff2d55" />
+              <stop offset="100%" stopColor="var(--accent-nuclear)" />
             </linearGradient>
             <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="rgba(0, 242, 255, 0.1)" />
@@ -62,7 +62,7 @@ const TrendGraph = ({ data }) => {
               <circle cx={p.x} cy={p.y} r="4" fill="var(--bg-card)" stroke="white" strokeWidth="2" />
               {(p.isDanger || p.isSafe) && (
                 <g>
-                  <circle cx={p.x} cy={p.y} r="10" fill={p.isDanger ? 'rgba(255, 45, 85, 0.2)' : 'rgba(0, 255, 127, 0.2)'} className="pulse-marker" />
+                  <circle cx={p.x} cy={p.y} r="10" fill={p.isDanger ? 'var(--accent-nuclear)' : 'var(--accent-tech)'} opacity="0.2" className="pulse-marker" />
                   <text x={p.x} y={p.y - 15} textAnchor="middle" className={`marker-label ${p.isDanger ? 'danger' : 'safe'}`}>
                     {p.isDanger ? 'MAX RISK' : 'STABLE'}
                   </text>
@@ -78,6 +78,32 @@ const TrendGraph = ({ data }) => {
 };
 
 const CONFIG_ERROR = !supabase;
+const CATEGORY_LABELS = {
+  'nuclear': 'Nuclear',
+  'climate': 'Climate',
+  'ai': 'Artificial Intelligence',
+  'disruptive_tech': 'Disruptive Tech',
+  'fragile_state': 'Fragile States',
+  'pandemic': 'Pandemic',
+  'other': 'Other'
+};
+
+const categoryMapping = {
+  'Nuclear': 'nuclear',
+  'Climate': 'climate',
+  'AI': 'ai',
+  'Pandemic': 'pandemic',
+  'Fragile State': 'fragile_state'
+};
+
+const IMPACT_EVENTS = [
+  { id: 1, title: 'Missile test detected', category: 'Nuclear', impact: -12 },
+  { id: 2, title: 'Climate agreement signed', category: 'Climate', impact: 5 },
+  { id: 3, title: 'AI safety protocol breach', category: 'AI', impact: -8 },
+  { id: 4, title: 'Global healthcare expansion', category: 'Pandemic', impact: 3 },
+  { id: 5, title: 'Border escalation in contested zone', category: 'Fragile State', impact: -15 }
+];
+
 function App() {
   const [timeLeft, setTimeLeft] = useState(90);
   const [syncData, setSyncData] = useState({ 
@@ -207,13 +233,7 @@ function App() {
     }
   }
 
-  const categoryMap = {
-    'nuclear': 'Nuclear',
-    'climate': 'Climate',
-    'ai': 'Artificial Intelligence',
-    'disruptive_tech': 'Disruptive Tech',
-    'fragile_state': 'Fragile States'
-  };
+  const categoryMap = CATEGORY_LABELS;
 
   // Top 5 IMPACTFUL articles (most negative score)
   const topImpactfulNews = [...articles]
@@ -295,23 +315,6 @@ function App() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   };
 
-  const categoryMapping = {
-    'Nuclear': 'nuclear',
-    'Climate': 'climate',
-    'AI': 'ai',
-    'Pandemic': 'pandemic',
-    'Fragile State': 'fragile-state'
-  };
-
-  const IMPACT_EVENTS = [
-    { id: 1, title: 'Missile test detected', category: 'Nuclear', impact: -12 },
-    { id: 2, title: 'Climate agreement signed', category: 'Climate', impact: 5 },
-    { id: 3, title: 'AI safety protocol breach', category: 'AI', impact: -8 },
-    { id: 4, title: 'Global healthcare expansion', category: 'Pandemic', impact: 3 },
-    { id: 5, title: 'Border escalation in contested zone', category: 'Fragile State', impact: -15 }
-  ];
-
-  
   const categoryKeys = Object.keys(categoryMap);
   
   const getCount = (catKey) => articles.filter(a => a.category === catKey).length;
@@ -381,11 +384,12 @@ function App() {
           <button className="explanation-toggle" onClick={() => setShowExplanation(true)}>
             WHY IS IT MOVING?
           </button>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ color: 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '1px' }}>SYSTEM ONLINE</div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem' }}>
-              SYNC: {new Date(currentStatus.lastUpdated).toLocaleTimeString()}
-            </div>
+          <div className="status-badge">
+            COMMAND CENTER LIVE
+            <div className="status-dot"></div>
+            <span style={{ marginLeft: '1rem', opacity: 0.6 }}>
+              SYNC: {new Date(currentStatus?.lastUpdated || currentStatus?.created_at || Date.now()).toLocaleTimeString()}
+            </span>
           </div>
         </div>
       </header>
@@ -603,7 +607,7 @@ function App() {
                         Severity: <span style={{ color: 'var(--text-primary)' }}>{article.ai_analysis.severity}/10</span>
                       </div>
                       <div style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', color: 'var(--text-secondary)' }}>
-                        Impact: <span style={{ color: 'var(--text-primary)' }}>{article.ai_analysis.score.toFixed(2)}</span>
+                        Impact: <span style={{ color: 'var(--text-primary)' }}>{(article.ai_analysis?.score || 0).toFixed(2)}</span>
                       </div>
                     </div>
                   )}
@@ -664,7 +668,7 @@ function App() {
                   <div className="news-rank">#{i+1}</div>
                   <div className="news-info">
                     <div className="news-title">{article.title}</div>
-                    <div className="news-score">Impact: {article.ai_analysis.score.toFixed(2)}</div>
+                    <div className="news-score">Impact: {(article.ai_analysis?.score || 0).toFixed(2)}</div>
                   </div>
                 </a>
               ))}
