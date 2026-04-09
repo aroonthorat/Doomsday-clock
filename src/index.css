@@ -18,6 +18,7 @@
   --glass-blur: blur(20px);
   --shadow-neon: 0 0 30px rgba(255, 45, 85, 0.3);
   --shadow-crisis: 0 0 50px rgba(255, 0, 0, 0.4);
+  --accent-tech: #00ff7f;
 }
 
 * {
@@ -1118,4 +1119,64 @@ header {
 @keyframes rotation {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Risk Score Display System */
+.risk-dashboard-widget {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 2rem 0;
+  width: 100%;
+  max-width: 500px;
+}
+
+.risk-stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  backdrop-filter: var(--glass-blur);
+}
+
+.risk-stat-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.risk-stat-value {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.risk-stat-footer {
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.impact-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.impact-badge.negative {
+  color: var(--accent-nuclear);
+  border: 1px solid rgba(255, 45, 85, 0.2);
+}
+
+.impact-badge.positive {
+  color: var(--accent-tech);
+  border: 1px solid rgba(0, 255, 115, 0.2);
 }

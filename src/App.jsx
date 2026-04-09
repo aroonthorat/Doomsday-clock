@@ -126,6 +126,14 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showExplanation, setShowExplanation] = useState(false);
 
+  // Global Risk Calculation System
+  const globalRiskScore = Math.max(0, Math.min(100, 100 - (timeLeft / 20))); // Scaled for dashboard visual
+  const riskStatus = useMemo(() => {
+    if (globalRiskScore > 75) return { label: 'CRITICAL', color: 'var(--accent-nuclear)' };
+    if (globalRiskScore > 40) return { label: 'ELEVATED', color: 'var(--accent-fragile)' };
+    return { label: 'STABLE', color: 'var(--accent-tech)' };
+  }, [globalRiskScore]);
+
   useEffect(() => {
     if (CONFIG_ERROR) return;
 
@@ -411,19 +419,29 @@ function App() {
               <span className="confidence-tag">Based on analyzed global news</span>
             </div>
 
-            <div className={`change-indicator ${isGlowActive ? 'animate-glow' : ''} ${dailyChange >= 0 ? 'change-positive' : 'change-negative'}`}>
-              <span className="change-value">
-                {dailyChange > 0 ? '+' : ''}{dailyChange.toFixed(2)}s
-              </span>
-              <span className="change-label">Today's Change</span>
-            </div>
-            
-            <div className="risk-level">
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-nuclear)' }}>CRITICAL</span>
-              <div className="risk-meter">
-                <div className="risk-fill" style={{ width: '92%' }}></div>
+            <div className="risk-dashboard-widget">
+              <div className="risk-stat-card">
+                <span className="risk-stat-label">Global Risk Score</span>
+                <span className="risk-stat-value" style={{ color: riskStatus.color }}>
+                  {globalRiskScore.toFixed(1)}
+                </span>
+                <div className="risk-stat-footer">
+                  <span className="status-dot" style={{ backgroundColor: riskStatus.color }}></span>
+                  <span style={{ color: riskStatus.color }}>{riskStatus.label}</span>
+                </div>
               </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>92%</span>
+
+              <div className="risk-stat-card">
+                <span className="risk-stat-label">Net Impact Today</span>
+                <span className="risk-stat-value">
+                  {dailyChange > 0 ? '+' : ''}{dailyChange.toFixed(1)}s
+                </span>
+                <div className="risk-stat-footer">
+                   <span className={`impact-badge ${dailyChange >= 0 ? 'positive' : 'negative'}`}>
+                    {dailyChange >= 0 ? '↑ BUFFER' : '↓ DRIFT'}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: '500px' }}>
