@@ -126,6 +126,12 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showExplanation, setShowExplanation] = useState(false);
 
+  // Emergency Crisis States
+  const [emergencyOffset, setEmergencyOffset] = useState(0);
+  const [isEmergencyActive, setIsEmergencyActive] = useState(false);
+  const [showEmergencyAlert, setShowEmergencyAlert] = useState(false);
+  const [lastEmergencyTime, setLastEmergencyTime] = useState(0);
+
   // Global Risk Calculation System
   const globalRiskScore = Math.max(0, Math.min(100, 100 - (timeLeft / 20))); // Scaled for dashboard visual
   const riskStatus = useMemo(() => {
@@ -165,6 +171,22 @@ function App() {
       if (newsSubscription) supabase.removeChannel(newsSubscription);
     };
   }, []);
+
+  // Emergency Trigger Listener
+  useEffect(() => {
+    if (isCrisisActive && Date.now() - lastEmergencyTime > 60000) {
+      // Trigger Emergency Adjustment
+      const reduction = Math.floor(Math.random() * 31) + 30; // 30-60s
+      setEmergencyOffset(prev => prev + reduction);
+      setIsEmergencyActive(true);
+      setShowEmergencyAlert(true);
+      setLastEmergencyTime(Date.now());
+
+      // Reset animation states
+      setTimeout(() => setIsEmergencyActive(false), 2000);
+      setTimeout(() => setShowEmergencyAlert(false), 5000);
+    }
+  }, [isCrisisActive]);
 
   async function fetchData() {
     if (CONFIG_ERROR) return;
@@ -304,7 +326,7 @@ function App() {
   useEffect(() => {
     const ticker = setInterval(() => {
       const elapsed = (Date.now() - syncData.timestamp) / 1000;
-      const current = Math.max(0, syncData.seconds - elapsed);
+      const current = Math.max(0, syncData.seconds - elapsed - emergencyOffset);
       setTimeLeft(current);
     }, 100);
     return () => clearInterval(ticker);
@@ -369,10 +391,18 @@ function App() {
           </div>
         </div>
       )}
+
       <div className="bg-glow">
         <div className="glow-orb" style={{ top: '10%', left: '20%' }}></div>
         <div className="glow-orb" style={{ bottom: '10%', right: '20%', background: 'radial-gradient(circle, rgba(112, 0, 255, 0.05) 0%, transparent 70%)' }}></div>
       </div>
+
+      {isEmergencyActive && <div className="emergency-flash-overlay" />}
+      {showEmergencyAlert && (
+        <div className="emergency-alert-banner">
+          ⚠️ Emergency Adjustment Applied
+        </div>
+      )}
 
       {isCrisisActive && (
         <div className="crisis-banner">
@@ -407,7 +437,12 @@ function App() {
           <div className="clock-telemetry">
             <div className="clock-status-tag">Live Risk Assessment</div>
             <h1>The World is at</h1>
-            <div key={Math.floor(timeLeft)} className="clock-timer ticking">{formatTime(timeLeft)}</div>
+            <div 
+              key={`${Math.floor(timeLeft)}-${isEmergencyActive}`} 
+              className={`clock-timer ticking ${isEmergencyActive ? 'crisis-jump' : ''}`}
+            >
+              {formatTime(timeLeft)}
+            </div>
             
             <div className="confidence-system">
               <div className="confidence-header">
