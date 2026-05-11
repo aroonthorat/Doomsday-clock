@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './index.css';
 import { supabase } from './supabaseClient';
+import baselineClock from './data/baselineClock.json';
 
 const TREND_DATA = [
   { date: '04/02', seconds: 120 },
@@ -88,21 +89,6 @@ const CATEGORY_LABELS = {
   'other': 'Other'
 };
 
-const categoryMapping = {
-  'Nuclear': 'nuclear',
-  'Climate': 'climate',
-  'AI': 'ai',
-  'Pandemic': 'pandemic',
-  'Fragile State': 'fragile_state'
-};
-
-const IMPACT_EVENTS = [
-  { id: 1, title: 'Missile test detected', category: 'Nuclear', impact: -12 },
-  { id: 2, title: 'Climate agreement signed', category: 'Climate', impact: 5 },
-  { id: 3, title: 'AI safety protocol breach', category: 'AI', impact: -8 },
-  { id: 4, title: 'Global healthcare expansion', category: 'Pandemic', impact: 3 },
-  { id: 5, title: 'Border escalation in contested zone', category: 'Fragile State', impact: -15 }
-];
 
 function App() {
   const [timeLeft, setTimeLeft] = useState(90);
@@ -118,13 +104,13 @@ function App() {
   });
   const [loading, setLoading] = useState(true);
   const [dailyChange, setDailyChange] = useState(0);
-  const [isCrisisActive, setIsCrisisActive] = useState(true);
-  const [crisisReason, setCrisisReason] = useState("War escalation detected");
+  const [isCrisisActive, setIsCrisisActive] = useState(false);
+  const [crisisReason, setCrisisReason] = useState("No active emergency override");
 
-  const [lastUpdateTime, setLastUpdateTime] = useState("Updated 2 mins ago");
   const [isGlowActive, setIsGlowActive] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showExplanation, setShowExplanation] = useState(false);
+  const [refreshState, setRefreshState] = useState({ status: 'idle', message: 'Auto refresh ready' });
 
   // Emergency Crisis States
   const [emergencyOffset, setEmergencyOffset] = useState(0);
@@ -143,7 +129,7 @@ function App() {
   useEffect(() => {
     if (CONFIG_ERROR) return;
 
-    fetchData();
+    fetchData().then(() => maybeAutoRefreshOnVisit());
     
     // Subscribe to real-time updates
     const statusSubscription = supabase
@@ -172,17 +158,14 @@ function App() {
     };
   }, []);
 
-  // Emergency Trigger Listener
+  // Emergency Trigger Listener - only animate verified crisis rows, never random visitor jumps.
   useEffect(() => {
     if (isCrisisActive && Date.now() - lastEmergencyTime > 60000) {
-      // Trigger Emergency Adjustment
-      const reduction = Math.floor(Math.random() * 31) + 30; // 30-60s
-      setEmergencyOffset(prev => prev + reduction);
+      setEmergencyOffset(prev => prev + 10);
       setIsEmergencyActive(true);
       setShowEmergencyAlert(true);
       setLastEmergencyTime(Date.now());
 
-      // Reset animation states
       setTimeout(() => setIsEmergencyActive(false), 2000);
       setTimeout(() => setShowEmergencyAlert(false), 5000);
     }
@@ -195,6 +178,48 @@ function App() {
     setLoading(false);
   }
 
+  async function requestFreshData({ automatic = false } = {}) {
+    if (CONFIG_ERROR || refreshState.status === 'loading') return;
+
+    setRefreshState({
+      status: 'loading',
+      message: automatic ? 'Auto-refreshing public data...' : 'Requesting latest news pull...'
+    });
+
+    try {
+      const response = await fetch('/api/refresh-news', { method: 'POST' });
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || 'Refresh failed');
+      }
+
+      localStorage.setItem('doomsday_last_public_refresh', Date.now().toString());
+      await fetchData();
+
+      setRefreshState({
+        status: result.skipped ? 'skipped' : 'success',
+        message: result.skipped
+          ? result.reason
+          : `Updated ${result.articles} live articles and recalculated the clock.`
+      });
+    } catch (error) {
+      setRefreshState({
+        status: 'error',
+        message: error.message || 'Unable to refresh data right now.'
+      });
+    }
+  }
+
+  function maybeAutoRefreshOnVisit() {
+    const lastRefresh = Number(localStorage.getItem('doomsday_last_public_refresh') || 0);
+    const minutesSinceRefresh = (Date.now() - lastRefresh) / 60000;
+
+    if (!lastRefresh || minutesSinceRefresh > 30) {
+      window.setTimeout(() => requestFreshData({ automatic: true }), 1200);
+    }
+  }
+
   async function fetchStatus() {
     const { data, error } = await supabase
       .from('clock_status')
@@ -205,6 +230,10 @@ function App() {
 
     if (data) {
       setCurrentStatus(data);
+      const emergencyReason = data.reason || '';
+      const activeEmergency = emergencyReason.toLowerCase().includes('emergency trigger');
+      setIsCrisisActive(activeEmergency);
+      setCrisisReason(activeEmergency ? emergencyReason : 'No active emergency override');
       const serverTime = new Date(data.created_at).getTime();
       setSyncData({ 
         seconds: data.seconds_to_midnight, 
@@ -307,14 +336,28 @@ function App() {
     return Math.round(Math.min(99, finalScore));
   }, [articles]);
 
-  // Risk Category Breakdown Data
-  const riskCategories = [
-    { label: 'Nuclear', score: 82, color: 'var(--accent-nuclear)', key: 'nuclear' },
-    { label: 'Climate', score: 91, color: 'var(--accent-climate)', key: 'climate' },
-    { label: 'AI', score: 68, color: 'var(--accent-ai)', key: 'ai' },
-    { label: 'Pandemic', score: 45, color: 'var(--accent-pandemic)', key: 'pandemic' },
-    { label: 'Economy', score: 32, color: 'var(--accent-economy)', key: 'economy' }
-  ];
+  // Risk Category Breakdown Data derived from analyzed articles. Negative article scores mean higher risk.
+  const riskCategories = ['nuclear', 'climate', 'ai', 'pandemic', 'economy'].map(key => {
+    const contribution = categoryContributions.find(cat => cat.key === key);
+    const riskScore = Math.max(0, Math.min(100, 50 - ((contribution?.score || 0) * 18)));
+    const colorMap = {
+      nuclear: 'var(--accent-nuclear)',
+      climate: 'var(--accent-climate)',
+      ai: 'var(--accent-ai)',
+      pandemic: 'var(--accent-pandemic)',
+      economy: 'var(--accent-economy)'
+    };
+
+    return {
+      label: categoryMap[key] || key,
+      score: Math.round(riskScore),
+      color: colorMap[key],
+      key
+    };
+  });
+
+  const baselineDifference = Math.round(timeLeft - baselineClock.currentOfficial.secondsToMidnight);
+  const worstHumanityDays = [...baselineClock.badHumanityDays].sort((a, b) => b.points - a.points);
 
   const getRiskLevelClass = (score) => {
     if (score >= 70) return 'risk-high';
@@ -422,6 +465,13 @@ function App() {
           <button className="explanation-toggle" onClick={() => setShowExplanation(true)}>
             WHY IS IT MOVING?
           </button>
+          <button
+            className={`refresh-button ${refreshState.status}`}
+            onClick={() => requestFreshData()}
+            disabled={refreshState.status === 'loading'}
+          >
+            {refreshState.status === 'loading' ? 'REFRESHING...' : 'REFRESH LIVE DATA'}
+          </button>
           <div className="status-badge">
             COMMAND CENTER LIVE
             <div className="status-dot"></div>
@@ -488,6 +538,27 @@ function App() {
               <div className="ai-chip">Sources: <span>Verified</span></div>
               <div className="ai-chip">Entropy: <span>Rising</span></div>
             </div>
+            <div className={`refresh-status ${refreshState.status}`}>{refreshState.message}</div>
+
+            <div className="baseline-panel">
+              <div className="panel-header">
+                <h3>Official Doomsday Clock Baseline</h3>
+                <span className="panel-date">{baselineClock.currentOfficial.year}</span>
+              </div>
+              <div className="baseline-grid">
+                <div className="baseline-primary">
+                  <span className="baseline-value">{baselineClock.currentOfficial.label}</span>
+                  <a className="baseline-source" href={baselineClock.officialSourceUrl} target="_blank" rel="noopener noreferrer">{baselineClock.officialSource}</a>
+                </div>
+                <div className="baseline-delta">
+                  <span className={baselineDifference >= 0 ? 'positive' : 'negative'}>
+                    {baselineDifference >= 0 ? '+' : ''}{baselineDifference}s
+                  </span>
+                  <small>live model vs official baseline</small>
+                </div>
+              </div>
+              <p>{baselineClock.currentOfficial.note}</p>
+            </div>
 
             <div className="divergence-panel">
               <div className="panel-header">
@@ -517,16 +588,16 @@ function App() {
                 <span className="panel-badge">REAL-TIME DATA</span>
               </div>
               <div className="impact-list">
-                {IMPACT_EVENTS.map(event => (
-                  <div key={event.id} className="impact-item">
+                {topImpactfulNews.map((event, index) => (
+                  <div key={`${event.title}-${index}`} className="impact-item">
                     <div className="impact-info">
                       <span className="impact-title">{event.title}</span>
-                      <span className={`impact-category-chip ${categoryMapping[event.category]}`}>
-                        {event.category}
+                      <span className={`impact-category-chip ${event.category}`}>
+                        {categoryMap[event.category] || event.category}
                       </span>
                     </div>
-                    <div className={`impact-score-box ${event.impact < 0 ? 'negative' : 'positive'}`}>
-                      {event.impact > 0 ? '+' : ''}{event.impact}s
+                    <div className={`impact-score-box ${(event.ai_analysis?.score || 0) < 0 ? 'negative' : 'positive'}`}>
+                      {(event.ai_analysis?.score || 0).toFixed(2)} pts
                     </div>
                   </div>
                 ))}
@@ -612,6 +683,42 @@ function App() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="humanity-calendar">
+          <div className="section-label">Calendar Risk Memory</div>
+          <div className="calendar-layout">
+            <div className="official-timeline">
+              <h3>Official Clock Baseline Timeline</h3>
+              <div className="timeline-list">
+                {baselineClock.timeline.slice(-6).map(item => (
+                  <div key={item.year} className="timeline-row">
+                    <span className="timeline-year">{item.year}</span>
+                    <span className="timeline-seconds">{item.label}</span>
+                    <span className="timeline-context">{item.context}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bad-days">
+              <h3>Bad Days for Humanity</h3>
+              <div className="bad-day-list">
+                {worstHumanityDays.map(day => (
+                  <div key={day.date} className="bad-day-card">
+                    <div className="bad-day-score">{day.points}</div>
+                    <div className="bad-day-content">
+                      <div className="bad-day-meta">
+                        <span>{new Date(`${day.date}T00:00:00Z`).toLocaleDateString()}</span>
+                        <span>{day.category}</span>
+                      </div>
+                      <h4>{day.title}</h4>
+                      <p>{day.summary}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
