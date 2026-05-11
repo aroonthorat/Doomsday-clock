@@ -1,0 +1,142 @@
+{
+  "officialSource": "Bulletin of the Atomic Scientists",
+  "currentOfficial": {
+    "year": 2026,
+    "secondsToMidnight": 85,
+    "label": "85 seconds to midnight",
+    "note": "Official annual baseline used as an anchor for the live model. The app's live timer can move around this baseline as news risk changes."
+  },
+  "timeline": [
+    {
+      "year": 1947,
+      "secondsToMidnight": 420,
+      "label": "7 minutes",
+      "context": "Initial Clock setting after World War II."
+    },
+    {
+      "year": 1949,
+      "secondsToMidnight": 180,
+      "label": "3 minutes",
+      "context": "Soviet Union tests its first atomic bomb."
+    },
+    {
+      "year": 1953,
+      "secondsToMidnight": 120,
+      "label": "2 minutes",
+      "context": "US and Soviet thermonuclear tests intensify Cold War danger."
+    },
+    {
+      "year": 1963,
+      "secondsToMidnight": 720,
+      "label": "12 minutes",
+      "context": "Limited Test Ban Treaty lowers nuclear testing tension."
+    },
+    {
+      "year": 1984,
+      "secondsToMidnight": 180,
+      "label": "3 minutes",
+      "context": "US-Soviet arms race and communication breakdown raise danger."
+    },
+    {
+      "year": 1991,
+      "secondsToMidnight": 1020,
+      "label": "17 minutes",
+      "context": "Cold War ends and major nuclear arms reductions begin."
+    },
+    {
+      "year": 2007,
+      "secondsToMidnight": 300,
+      "label": "5 minutes",
+      "context": "Climate change joins nuclear weapons as a major Clock driver."
+    },
+    {
+      "year": 2018,
+      "secondsToMidnight": 120,
+      "label": "2 minutes",
+      "context": "Nuclear tensions and information threats worsen."
+    },
+    {
+      "year": 2020,
+      "secondsToMidnight": 100,
+      "label": "100 seconds",
+      "context": "Nuclear risk, climate inaction, and cyber-enabled disinformation converge."
+    },
+    {
+      "year": 2023,
+      "secondsToMidnight": 90,
+      "label": "90 seconds",
+      "context": "Russia-Ukraine war and nuclear escalation risks move the Clock closer."
+    },
+    {
+      "year": 2025,
+      "secondsToMidnight": 89,
+      "label": "89 seconds",
+      "context": "Official Clock reaches its closest point at that time."
+    },
+    {
+      "year": 2026,
+      "secondsToMidnight": 85,
+      "label": "85 seconds",
+      "context": "Official Clock baseline moves closer amid nuclear, climate, biological, AI, and information risks."
+    }
+  ],
+  "badHumanityDays": [
+    {
+      "date": "1945-08-06",
+      "title": "Atomic bombing of Hiroshima",
+      "category": "Nuclear",
+      "points": 98,
+      "summary": "First wartime use of a nuclear weapon demonstrated civilization-scale destructive power."
+    },
+    {
+      "date": "1949-08-29",
+      "title": "First Soviet atomic bomb test",
+      "category": "Nuclear",
+      "points": 91,
+      "summary": "Started a bipolar nuclear arms race and moved the official Clock sharply toward midnight."
+    },
+    {
+      "date": "1962-10-16",
+      "title": "Cuban Missile Crisis begins",
+      "category": "Nuclear",
+      "points": 99,
+      "summary": "The world entered one of the highest-risk nuclear confrontations in history."
+    },
+    {
+      "date": "1986-04-26",
+      "title": "Chernobyl nuclear disaster",
+      "category": "Nuclear",
+      "points": 86,
+      "summary": "A catastrophic reactor accident spread long-term radiological, political, and public-health consequences."
+    },
+    {
+      "date": "2001-09-11",
+      "title": "September 11 attacks",
+      "category": "Fragile State",
+      "points": 88,
+      "summary": "Mass-casualty terrorism reshaped global security policy and conflict dynamics."
+    },
+    {
+      "date": "2020-03-11",
+      "title": "COVID-19 declared a pandemic",
+      "category": "Pandemic",
+      "points": 92,
+      "summary": "A global biological crisis exposed fragility in health, governance, and supply-chain systems."
+    },
+    {
+      "date": "2022-02-24",
+      "title": "Russia launches full-scale invasion of Ukraine",
+      "category": "Nuclear",
+      "points": 94,
+      "summary": "A major interstate war revived direct nuclear escalation risks in Europe."
+    },
+    {
+      "date": "2023-07-06",
+      "title": "Hottest global day cluster recorded",
+      "category": "Climate",
+      "points": 82,
+      "summary": "Extreme global heat underscored accelerating climate-system stress."
+    }
+  ],
+  "officialSourceUrl": "https://thebulletin.org/doomsday-clock"
+}

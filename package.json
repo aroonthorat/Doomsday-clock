@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "update-news": "node --env-file=.env scripts/fetch_news.js"
+    "update-news": "node --env-file-if-exists=.env scripts/fetch_news.js",
+    "enrich-news": "python enrich_data.py",
+    "refresh-data": "npm run update-news && npm run enrich-news"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.1",

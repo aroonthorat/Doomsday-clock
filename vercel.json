@@ -1,7 +1,13 @@
 {
+  "crons": [
+    {
+      "path": "/api/refresh-news",
+      "schedule": "0 */6 * * *"
+    }
+  ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
